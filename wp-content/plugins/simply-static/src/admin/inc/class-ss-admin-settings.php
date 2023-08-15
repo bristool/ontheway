@@ -85,7 +85,8 @@ class Admin_Settings {
 			'wp-element',
 			'wp-api-fetch',
 			'wp-data',
-			'wp-i18n'
+			'wp-i18n',
+			'wp-block-editor'
 		), SIMPLY_STATIC_VERSION, true );
 
 
@@ -134,11 +135,9 @@ class Admin_Settings {
 				'home_path'      => get_home_path(),
 				'admin_email'    => get_bloginfo( 'admin_email' ),
 				'temp_files_dir' => trailingslashit( $temp_dir ),
-				'token'          => get_option( 'sch_token' ),
 				'blog_id'        => get_current_blog_id(),
 				'sites'          => $sites,
 				'need_upgrade'   => 'no',
-
 			)
 		);
 
@@ -182,7 +181,7 @@ class Admin_Settings {
 			'methods'             => 'GET',
 			'callback'            => [ $this, 'get_settings' ],
 			'permission_callback' => function () {
-				return current_user_can( 'manage_options' );
+				return current_user_can( apply_filters( 'ss_user_capability', 'manage_options' ) );
 			},
 		) );
 
@@ -190,7 +189,7 @@ class Admin_Settings {
 			'methods'             => 'POST',
 			'callback'            => [ $this, 'save_settings' ],
 			'permission_callback' => function () {
-				return current_user_can( 'manage_options' );
+				return current_user_can( apply_filters( 'ss_user_capability', 'manage_options' ) );
 			},
 		) );
 
@@ -198,7 +197,15 @@ class Admin_Settings {
 			'methods'             => 'POST',
 			'callback'            => [ $this, 'reset_settings' ],
 			'permission_callback' => function () {
-				return current_user_can( 'manage_options' );
+				return current_user_can( apply_filters( 'ss_user_capability', 'manage_options' ) );
+			},
+		) );
+
+		register_rest_route( 'simplystatic/v1', '/pages', array(
+			'methods'             => 'GET',
+			'callback'            => [ $this, 'get_pages' ],
+			'permission_callback' => function () {
+				return current_user_can( apply_filters( 'ss_user_capability', 'manage_options' ) );
 			},
 		) );
 
@@ -206,7 +213,7 @@ class Admin_Settings {
 			'methods'             => 'POST',
 			'callback'            => [ $this, 'migrate_settings' ],
 			'permission_callback' => function () {
-				return current_user_can( 'manage_options' );
+				return current_user_can( apply_filters( 'ss_user_capability', 'manage_options' ) );
 			},
 		) );
 
@@ -214,7 +221,7 @@ class Admin_Settings {
 			'methods'             => 'GET',
 			'callback'            => [ $this, 'get_system_status' ],
 			'permission_callback' => function () {
-				return current_user_can( 'manage_options' );
+				return current_user_can( apply_filters( 'ss_user_capability', 'manage_options' ) );
 			},
 		) );
 
@@ -222,7 +229,7 @@ class Admin_Settings {
 			'methods'             => 'POST',
 			'callback'            => [ $this, 'clear_log' ],
 			'permission_callback' => function () {
-				return current_user_can( 'manage_options' );
+				return current_user_can( apply_filters( 'ss_user_capability', 'manage_options' ) );
 			},
 		) );
 
@@ -230,7 +237,7 @@ class Admin_Settings {
 			'methods'             => 'GET',
 			'callback'            => [ $this, 'get_activity_log' ],
 			'permission_callback' => function () {
-				return current_user_can( 'manage_options' );
+				return current_user_can( apply_filters( 'ss_user_capability', 'manage_options' ) );
 			},
 		) );
 
@@ -238,7 +245,7 @@ class Admin_Settings {
 			'methods'             => 'GET',
 			'callback'            => [ $this, 'get_export_log' ],
 			'permission_callback' => function () {
-				return current_user_can( 'manage_options' );
+				return current_user_can( apply_filters( 'ss_user_capability', 'manage_options' ) );
 			},
 		) );
 
@@ -246,7 +253,7 @@ class Admin_Settings {
 			'methods'             => 'POST',
 			'callback'            => [ $this, 'start_export' ],
 			'permission_callback' => function () {
-				return current_user_can( 'manage_options' );
+				return current_user_can( apply_filters( 'ss_user_capability', 'manage_options' ) );
 			},
 		) );
 
@@ -254,7 +261,7 @@ class Admin_Settings {
 			'methods'             => 'POST',
 			'callback'            => [ $this, 'cancel_export' ],
 			'permission_callback' => function () {
-				return current_user_can( 'manage_options' );
+				return current_user_can( apply_filters( 'ss_user_capability', 'manage_options' ) );
 			},
 		) );
 
@@ -262,7 +269,7 @@ class Admin_Settings {
 			'methods'             => 'GET',
 			'callback'            => [ $this, 'is_running' ],
 			'permission_callback' => function () {
-				return current_user_can( 'manage_options' );
+				return current_user_can( apply_filters( 'ss_user_capability', 'manage_options' ) );
 			},
 		) );
 	}
@@ -339,6 +346,29 @@ class Admin_Settings {
 		}
 
 		return json_encode( [ 'status' => 400, 'message' => "No options updated." ] );
+	}
+
+	/**
+     * Get pages for settings.
+	 * @return array
+	 */
+	public function get_pages() {
+		$args = array(
+			'post_type'   => 'page',
+			'post_status' => 'publish',
+			'numberposts' => - 1,
+		);
+
+		$pages = get_posts( $args );
+
+		// Build selectable pages array.
+		$selectable_pages = array();
+
+		foreach ( $pages as $page ) {
+			$selectable_pages[] = array( 'label' => $page->post_title, 'value' => $page->ID );
+		}
+
+		return $selectable_pages;
 	}
 
 	/**
